@@ -1,0 +1,22 @@
+# Loan Risk Analytics - Dependencies
+
+# API Server
+fastapi
+uvicorn
+pydantic
+
+# Data Processing
+pandas
+numpy
+
+# Machine Learning
+scikit-learn
+
+# Visualization
+plotly
+
+# Dashboard
+streamlit
+
+# HTTP Client
+requests
