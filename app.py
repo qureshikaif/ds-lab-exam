@@ -9,7 +9,6 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import requests
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
@@ -18,6 +17,7 @@ from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     confusion_matrix, roc_curve, auc, classification_report
 )
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -104,17 +104,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# Cache functions for performance
-@st.cache_data(ttl=300)
-def fetch_data_from_api(api_url: str) -> pd.DataFrame:
-    """Fetch loan data from the API"""
+# Load data from CSV
+@st.cache_data
+def load_data():
+    """Load loan data from CSV file"""
+    csv_path = os.path.join(os.path.dirname(__file__), 'loan_data.csv')
     try:
-        response = requests.get(f"{api_url}/customers", timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        return pd.DataFrame(data)
-    except requests.exceptions.RequestException as e:
-        st.error(f"Failed to connect to API: {e}")
+        df = pd.read_csv(csv_path)
+        return df
+    except FileNotFoundError:
+        st.error("loan_data.csv not found!")
         return None
 
 
@@ -453,35 +452,19 @@ def main():
     # Sidebar
     st.sidebar.markdown("## ⚙️ Configuration")
     
-    # API Configuration
-    api_url = st.sidebar.text_input("API URL", value="http://localhost:8000")
-    
-    # Fetch data
-    if st.sidebar.button("🔄 Refresh Data", use_container_width=True):
-        st.cache_data.clear()
-    
-    df = fetch_data_from_api(api_url)
+    # Load data from CSV
+    df = load_data()
     
     if df is None or df.empty:
-        st.warning("⚠️ Could not fetch data from API. Please ensure the API server is running.")
-        st.info("Start the API server with: `python api.py` or `uvicorn api:app --reload`")
-        
-        # Provide option to use sample data
-        if st.button("Use Sample Data Instead"):
-            np.random.seed(42)
-            n = 1000
-            df = pd.DataFrame({
-                'customer_id': range(1, n+1),
-                'age': np.random.randint(21, 65, n),
-                'monthly_income': np.random.lognormal(10.5, 0.5, n).astype(int),
-                'loan_amount': np.random.lognormal(12, 0.8, n).astype(int),
-                'credit_score': np.clip(np.random.normal(680, 80, n), 300, 850).astype(int),
-                'employment_years': np.random.randint(0, 30, n),
-                'defaulted': np.random.binomial(1, 0.15, n)
-            })
-            st.success("Sample data loaded!")
-        else:
-            return
+        st.error("⚠️ Could not load data from loan_data.csv")
+        return
+    
+    st.sidebar.success(f"✅ Loaded {len(df)} records from CSV")
+    
+    # Refresh button
+    if st.sidebar.button("🔄 Refresh Data", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
     
     # Navigation
     st.sidebar.markdown("---")
@@ -588,7 +571,7 @@ def main():
         st.markdown("---")
         st.markdown("### 📊 Key Distributions")
         
-        charts = create_eda_charts(df)
+        charts = create_eda_charts(df.copy())
         col1, col2 = st.columns(2)
         with col1:
             st.plotly_chart(charts['default_pie'], use_container_width=True)
@@ -609,7 +592,7 @@ def main():
         st.markdown("---")
         
         # Generate all charts
-        charts = create_eda_charts(df)
+        charts = create_eda_charts(df.copy())
         
         # Display charts in grid
         st.markdown("#### 📈 Visual Analysis")
@@ -901,4 +884,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
