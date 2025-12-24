@@ -561,8 +561,7 @@ def main():
         with col2:
             st.markdown("### 📋 Data Sample")
             st.dataframe(
-                df.head(10).style.background_gradient(subset=['credit_score'], cmap='RdYlGn')
-                .background_gradient(subset=['defaulted'], cmap='RdYlGn_r'),
+                df.head(10),
                 use_container_width=True,
                 height=350
             )
@@ -854,10 +853,10 @@ def main():
             
             filtered_df = results_df[results_df['risk_category'].isin(risk_filter)]
             
+            display_df = filtered_df.sort_values('predicted_probability', ascending=False).copy()
+            display_df['predicted_probability'] = display_df['predicted_probability'].apply(lambda x: f"{x:.2%}")
             st.dataframe(
-                filtered_df.sort_values('predicted_probability', ascending=False)
-                .style.background_gradient(subset=['predicted_probability'], cmap='RdYlGn_r')
-                .format({'predicted_probability': '{:.2%}'}),
+                display_df,
                 use_container_width=True,
                 height=400
             )
